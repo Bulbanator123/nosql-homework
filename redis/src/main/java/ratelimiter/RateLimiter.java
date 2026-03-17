@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.Instant;
+import java.util.*;
+
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
@@ -21,9 +23,21 @@ public class RateLimiter {
     this.timeWindowSeconds = timeWindowSeconds;
   }
 
+  // я к этому долго шёл, нужно было сразу последний тест смотреть, а не городить хешмапы
+  // тот самый случай, когда более сложное решение лаконичнее выглядит
   public boolean pass() {
     // TODO: Implementation
-    return false;
+    long now = Instant.now().toEpochMilli();
+    redis.zremrangeByScore(label, 0, now - timeWindowSeconds * 1000L);
+    long responsesCount = redis.zcount(label, 0, now);
+
+    if (responsesCount >= maxRequestCount) {
+      return false;
+    }
+
+    redis.zadd(label, now, UUID.randomUUID().toString());
+    redis.expire(label, timeWindowSeconds + 60);
+    return true;
   }
 
   public static void main(String[] args) {
