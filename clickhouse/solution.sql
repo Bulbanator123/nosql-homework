@@ -6,10 +6,10 @@ DROP TABLE IF EXISTS server_logs;
 CREATE TABLE IF NOT EXISTS server_logs
 (
     timestamp DateTime,
-    user_id UInt8,
+    user_id UInt64,
     endpoint String,
     response_time_ms UInt32,
-    status_code UInt32
+    status_code UInt16
 )
 ENGINE = MergeTree
 ORDER BY (timestamp, user_id);
@@ -22,7 +22,7 @@ ORDER BY (timestamp, user_id);
 
 -- 3. Запрос: Топ-5 самых медленных endpoint'ов (по среднему времени ответа)
 -- TODO: напишите SELECT запрос
-SELECT endpoint, ROUND(AVG(response_time_ms)) AS average_endpoint_time FROM server_logs
+SELECT endpoint, AVG(response_time_ms) AS average_endpoint_time FROM server_logs
 GROUP BY endpoint
 ORDER BY AVG(response_time_ms) DESC 
 LIMIT 5;
@@ -37,5 +37,5 @@ ORDER BY toHour(timestamp);
 
 -- 5. Запрос: Процент ошибок (status_code >= 400) для каждого endpoint'а
 -- TODO: напишите SELECT запрос с вычислением процента ошибок
-SELECT endpoint, ROUND(AVG((status_code >= 400) * 100), 2) AS error_percent FROM server_logs
+SELECT endpoint, ROUND(countIf(status_code >= 400) / COUNT(*) * 100.0, 2) AS error_percent FROM server_logs
 GROUP BY endpoint;
